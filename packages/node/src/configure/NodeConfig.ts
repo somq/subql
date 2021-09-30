@@ -26,6 +26,7 @@ export interface IConfig {
   readonly timestampField: boolean;
   readonly proofOfIndex: boolean;
   readonly mmrPath?: string;
+  readonly ipfs?: string;
 }
 
 export type MinConfig = Partial<Omit<IConfig, 'subqueryName' | 'subquery'>> &
@@ -129,6 +130,9 @@ export class NodeConfig implements IConfig {
 
   get mmrPath(): string {
     return this._config.mmrPath ?? `.mmr/${this.subqueryName}.mmr`;
+  }
+  get ipfs(): string {
+    return this._config.ipfs;
   }
 
   merge(config: Partial<IConfig>): this {

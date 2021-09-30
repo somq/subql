@@ -1,44 +1,54 @@
 // Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import path from 'path';
 import { RegisteredTypes } from '@polkadot/types/types';
 import {
-  loadProjectManifest,
   parseChainTypes,
   ProjectNetworkConfig,
   ProjectManifestVersioned,
   manifestIsV0_0_1,
   manifestIsV0_2_0,
-  loadFromJsonOrYaml,
+  ReaderFactory,
+  parseProjectManifest,
+  Reader,
+  isRuntimeDataSourceV0_2_0,
+  GithubReader,
+  ReaderOptions,
 } from '@subql/common';
-import { SubqlDatasource } from '@subql/types';
+import { SubqlDatasource, SubqlRuntimeDatasource } from '@subql/types';
+import yaml from 'js-yaml';
 import { pick } from 'lodash';
 import { getLogger } from '../utils/logger';
-import { prepareProjectDir } from '../utils/project';
 
 const logger = getLogger('configure');
 
 export class SubqueryProject {
-  private _path: string;
   private _projectManifest: ProjectManifestVersioned;
 
   static async create(
     path: string,
     networkOverrides?: Partial<ProjectNetworkConfig>,
+    readerOptions?: ReaderOptions,
   ): Promise<SubqueryProject> {
-    const projectPath = await prepareProjectDir(path);
-    const projectManifest = loadProjectManifest(projectPath);
-    return new SubqueryProject(projectManifest, projectPath, networkOverrides);
+    const reader = await ReaderFactory.create(path, readerOptions);
+
+    const projectManifest = parseProjectManifest(
+      await reader.getProjectSchema(),
+    );
+    return new SubqueryProject(projectManifest, reader, networkOverrides);
   }
 
   constructor(
     manifest: ProjectManifestVersioned,
-    path: string,
+    private readonly reader: Reader,
     private networkOverrides?: Partial<ProjectNetworkConfig>,
   ) {
     this._projectManifest = manifest;
-    this._path = path;
+
+    if (reader instanceof GithubReader) {
+      // No support because we cant run build, or install dependencies
+      throw new Error('Projects from github is not supported');
+    }
 
     manifest.dataSources?.forEach(function (dataSource) {
       if (!dataSource.startBlock || dataSource.startBlock < 1) {
@@ -46,6 +56,11 @@ export class SubqueryProject {
         dataSource.startBlock = 1;
       }
     });
+  }
+
+  get id(): string {
+    //projectId // TODO, define projectId, used by poi
+    return this.root;
   }
 
   get projectManifest(): ProjectManifestVersioned {
@@ -82,26 +97,30 @@ export class SubqueryProject {
     );
   }
 
-  get path(): string {
-    return this._path;
-  }
   get dataSources(): SubqlDatasource[] {
     return this._projectManifest.dataSources;
   }
-  get schema(): string {
-    return this._projectManifest.schema;
+
+  get schema(): Promise<string> {
+    return this.reader.getFile(this._projectManifest.schema) as Promise<string>;
   }
 
-  get chainTypes(): RegisteredTypes | undefined {
+  get root(): string | undefined {
+    return this.reader.root;
+  }
+
+  get chainTypes(): Promise<RegisteredTypes | undefined> {
     const impl = this._projectManifest.asImpl;
     if (manifestIsV0_0_1(impl)) {
-      return pick<RegisteredTypes>(impl.network, [
-        'types',
-        'typesAlias',
-        'typesBundle',
-        'typesChain',
-        'typesSpec',
-      ]);
+      return Promise.resolve(
+        pick<RegisteredTypes>(impl.network, [
+          'types',
+          'typesAlias',
+          'typesBundle',
+          'typesChain',
+          'typesSpec',
+        ]),
+      );
     }
 
     if (manifestIsV0_2_0(impl)) {
@@ -109,11 +128,29 @@ export class SubqueryProject {
         return;
       }
 
-      const rawChainTypes = loadFromJsonOrYaml(
-        path.join(this._path, impl.network.chaintypes.file),
-      );
-
-      return parseChainTypes(rawChainTypes);
+      return this.reader
+        .getFile(impl.network.chaintypes.file)
+        .then((res) => yaml.load(res))
+        .then(parseChainTypes);
     }
+  }
+
+  async getDataSourceEntry(ds: SubqlRuntimeDatasource): Promise<string> {
+    // TODO cache results, entry is used as an id for sandbox
+    if (isRuntimeDataSourceV0_2_0(ds)) {
+      return ds.mapping.file;
+    } else {
+      const pkg = await this.reader.getPkg();
+
+      if (!pkg.main) {
+        return './dist';
+      }
+      return pkg.main.startsWith('./') ? pkg.main : `./${pkg.main}`;
+    }
+  }
+
+  async loadDataSourceEntry(entry: string): Promise<string> {
+    // XXX these all get parsed by yaml parser
+    return this.reader.getFile(entry) as Promise<string>;
   }
 }

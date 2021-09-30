@@ -20,7 +20,7 @@ function testSubqueryProject(): SubqueryProject {
       },
       dataSources: [],
     } as any),
-    '',
+    undefined,
   );
   return project;
 }

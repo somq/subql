@@ -3,7 +3,7 @@
 
 import path from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ProjectManifestVersioned } from '@subql/common';
+import { LocalReader, ProjectManifestVersioned } from '@subql/common';
 import { SubqlDatasourceKind, SubqlHandlerKind } from '@subql/types';
 import { NodeConfig } from '../configure/NodeConfig';
 import { SubqueryProject } from '../configure/project.model';
@@ -170,7 +170,7 @@ function testSubqueryProject(): SubqueryProject {
       },
       dataSources: [],
     } as any),
-    '',
+    undefined,
   );
   return project;
 }
@@ -201,7 +201,7 @@ function testSubqueryProjectV0_2_0(): SubqueryProject {
         },
       ],
     } as any),
-    path.resolve(__dirname, '../../../'),
+    new LocalReader(path.resolve(__dirname, '../../../')),
   );
   return project;
 }

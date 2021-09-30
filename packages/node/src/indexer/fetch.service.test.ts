@@ -32,7 +32,7 @@ function testSubqueryProject(): SubqueryProject {
         },
       ],
     } as any),
-    '',
+    undefined,
   );
   return project;
 }

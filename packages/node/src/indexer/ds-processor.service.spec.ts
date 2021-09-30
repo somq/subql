@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import path from 'path';
-import { ProjectManifestVersioned, isCustomDs } from '@subql/common';
+import { LocalReader, ProjectManifestVersioned, isCustomDs } from '@subql/common';
 import { SubqlCustomDatasource } from '@subql/types';
 import { SubqueryProject } from '../configure/project.model';
 import { DsProcessorService } from './ds-processor.service';
@@ -31,7 +31,7 @@ function getTestProject(extraDataSources?: SubqlCustomDatasource[]) {
         ...extraDataSources,
       ],
     } as any),
-    path.resolve(__dirname, '../../../'),
+    new LocalReader(path.resolve(__dirname, '../../../')),
   );
 }
 

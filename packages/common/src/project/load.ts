@@ -20,18 +20,8 @@ export function loadFromJsonOrYaml(file: string): unknown {
   return yaml.load(rawContent);
 }
 
-function loadFromFile(file: string): unknown {
-  let filePath = file;
-  if (fs.existsSync(file) && fs.lstatSync(file).isDirectory()) {
-    filePath = path.join(file, 'project.yaml');
-  }
-
-  return loadFromJsonOrYaml(filePath);
-}
-
-export function loadProjectManifest(file: string): ProjectManifestVersioned {
-  const doc = loadFromFile(file);
-  const projectManifest = new ProjectManifestVersioned(doc as VersionedProjectManifest);
+export function parseProjectManifest(raw: unknown): ProjectManifestVersioned {
+  const projectManifest = new ProjectManifestVersioned(raw as VersionedProjectManifest);
   projectManifest.validate();
   return projectManifest;
 }

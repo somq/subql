@@ -51,7 +51,7 @@ function testSubqueryProject(): SubqueryProject {
       network: testNetwork,
       dataSources: [],
     } as any),
-    '',
+    undefined,
   );
 }
 

@@ -17,24 +17,22 @@ export class GithubReader implements Reader {
     });
   }
 
+  get root(): undefined {
+    return undefined;
+  }
+
   async getPkg(): Promise<IPackageJson | undefined> {
-    return this.getFile('package.json');
+    return this.getFile('package.json') as Promise<unknown> as Promise<IPackageJson>;
   }
 
   async getProjectSchema(): Promise<unknown | undefined> {
-    return this.getFile('project.yaml');
+    return yaml.load(await this.getFile('project.yaml'));
   }
 
-  async getFile(fileName: string): Promise<unknown | undefined> {
+  async getFile(fileName: string): Promise<string | undefined> {
     try {
       const branch = await this.getDefaultBranch();
       const {data} = await this.api.get(path.join(branch, fileName));
-
-      const {ext} = path.parse(fileName);
-
-      if (ext === '.yaml' || ext === '.yml') {
-        return yaml.load(data);
-      }
 
       return data;
     } catch (err) {

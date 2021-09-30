@@ -19,7 +19,7 @@ export default class Validate extends Command {
 
   async run(): Promise<void> {
     const {flags} = this.parse(Validate);
-    const v = new Validator(flags.location ?? process.cwd(), {ipfs: flags.ipfs});
+    const v = await Validator.create(flags.location ?? process.cwd(), {ipfs: flags.ipfs});
     v.addRule(...commonRules);
 
     const reports = await v.getValidateReports();

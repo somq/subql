@@ -16,21 +16,25 @@ export class IPFSReader implements Reader {
     this.ipfs = IPFS.create({url: gateway});
   }
 
+  get root(): undefined {
+    return undefined;
+  }
+
   async getPkg(): Promise<IPackageJson | undefined> {
     return Promise.resolve(undefined);
   }
 
   async getProjectSchema(): Promise<unknown | undefined> {
-    return this.getFile(this.cid);
+    return yaml.load(await this.getFile(this.cid));
   }
 
-  async getFile(fileName: string): Promise<unknown | undefined> {
+  async getFile(fileName: string): Promise<string | undefined> {
     try {
       const req = this.ipfs.cat(fileName.replace('ipfs://', ''));
 
       // Should be first item
       for await (const res of req) {
-        return yaml.load(Buffer.from(res).toString('utf8'));
+        return Buffer.from(res).toString('utf8');
       }
     } catch (e) {
       return undefined;

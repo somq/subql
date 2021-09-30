@@ -1,12 +1,11 @@
 // Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import path from 'path';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiPromise } from '@polkadot/api';
 import {
-  buildSchema,
+  buildSchemaFromString,
   getAllEntitiesRelations,
   isBlockHandlerProcessor,
   isCallHandlerProcessor,
@@ -114,7 +113,7 @@ export class IndexerManager {
           block.block.header.hash.toHex(),
           operationHash,
           await this.poiService.getLatestPoiBlockHash(),
-          this.project.path, //projectId // TODO, define projectId
+          this.project.id,
         );
         poiBlockHash = poiBlock.hash;
         await this.storeService.setPoi(tx, poiBlock);
@@ -308,9 +307,7 @@ export class IndexerManager {
 
   private async initDbSchema(): Promise<void> {
     const schema = this.subqueryState.dbSchema;
-    const graphqlSchema = buildSchema(
-      path.join(this.project.path, this.project.schema),
-    );
+    const graphqlSchema = buildSchemaFromString(await this.project.schema);
     const modelsRelations = getAllEntitiesRelations(graphqlSchema);
     await this.storeService.init(modelsRelations, schema);
   }

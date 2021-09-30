@@ -42,11 +42,17 @@ describe('SubqueryProject', () => {
 
   describe('Manifest v0.0.1', () => {
     beforeEach(() => {
-      project = new SubqueryProject(manifestV0_0_1, '');
+      project = new SubqueryProject(manifestV0_0_1, undefined);
     });
 
-    it('can get the chain types', () => {
-      expect(project.chainTypes).toMatchObject(chainTypes);
+    it('can get the chain types', async () => {
+      await expect(project.chainTypes).resolves.toMatchObject(chainTypes);
+    });
+
+    it('should throw creating a project from github', async () => {
+      await expect(
+        SubqueryProject.create('https://github.com/subquery/subql-starter'),
+      ).rejects.toThrow(/Projects from github is not supported/);
     });
   });
 
@@ -59,8 +65,8 @@ describe('SubqueryProject', () => {
       project = await SubqueryProject.create(projectDir);
     });
 
-    it('can get the chain types', () => {
-      expect(project.chainTypes).toMatchObject(chainTypes);
+    it('can get the chain types', async () => {
+      await expect(project.chainTypes).resolves.toMatchObject(chainTypes);
     });
 
     it('should throw if manifest endpoint or networkEndpoint is not provided', () => {

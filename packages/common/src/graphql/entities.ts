@@ -21,7 +21,7 @@ import {
   isUnionType,
 } from 'graphql';
 import {DirectiveName} from './constant';
-import {buildSchema} from './schema';
+import {buildSchemaFromFile} from './schema';
 import {
   FieldScalar,
   GraphQLEntityField,
@@ -34,7 +34,7 @@ import {
 } from './types';
 
 export function getAllJsonObjects(_schema: GraphQLSchema | string): GraphQLObjectType[] {
-  const schema = typeof _schema === 'string' ? buildSchema(_schema) : _schema;
+  const schema = typeof _schema === 'string' ? buildSchemaFromFile(_schema) : _schema;
   return Object.values(schema.getTypeMap())
     .filter((node) => node.astNode?.directives?.find(({name: {value}}) => value === DirectiveName.JsonField))
     .map((node) => node)
@@ -50,7 +50,7 @@ export function getAllEnums(_schema: GraphQLSchema | string) {
 
 // eslint-disable-next-line complexity
 export function getAllEntitiesRelations(_schema: GraphQLSchema | string): GraphQLModelsRelationsEnums {
-  const schema = typeof _schema === 'string' ? buildSchema(_schema) : _schema;
+  const schema = typeof _schema === 'string' ? buildSchemaFromFile(_schema) : _schema;
   const entities = Object.values(schema.getTypeMap())
     .filter((node) => node.astNode?.directives?.find(({name: {value}}) => value === DirectiveName.Entity))
     .filter(isObjectType);
