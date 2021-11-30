@@ -69,10 +69,14 @@ export class ConfigureModule {
       setLevel('debug');
     }
 
-    const projectPath = path.resolve(
-      config.configDir && !argv.subquery ? config.configDir : '.',
-      config.subquery,
-    );
+    const projectPath = config.ipfs
+      ? argv.subquery
+      : path.resolve(
+          config.configDir && !argv.subquery ? config.configDir : '.',
+          config.subquery,
+        );
+
+    console.log(`projectPath: ${projectPath}`);
 
     const project = async () => {
       const p = await SubqueryProject.create(

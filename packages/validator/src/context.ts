@@ -5,6 +5,7 @@ import {ProjectManifestVersioned, Reader} from '@subql/common';
 import {IPackageJson} from 'package-json-type';
 
 export interface ContextData {
+  projectPath: string;
   pkg: IPackageJson;
   schema?: ProjectManifestVersioned;
 }

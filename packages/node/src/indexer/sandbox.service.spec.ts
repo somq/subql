@@ -19,7 +19,6 @@ describe('sandbox for subql-node', () => {
     vm = new IndexerSandbox(
       {
         store: undefined,
-        api: undefined,
         root,
         entry,
         script: fs.readFileSync(path.join(root, entry)).toString(),

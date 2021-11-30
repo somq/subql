@@ -3,7 +3,7 @@
 
 import path from 'path';
 import {Command, flags} from '@oclif/command';
-import {loadProjectManifest, ProjectManifestVersioned} from '@subql/common';
+import {parseProjectManifest, ProjectManifestVersioned, ReaderFactory} from '@subql/common';
 import {migrate, prepare} from '../controller/migrate-controller';
 
 export default class Migrate extends Command {
@@ -20,7 +20,8 @@ export default class Migrate extends Command {
     const location = flags.location ? path.resolve(flags.location) : process.cwd();
     let manifest: ProjectManifestVersioned;
     try {
-      manifest = loadProjectManifest(location);
+      const reader = await ReaderFactory.create(location);
+      const manifest = parseProjectManifest(await reader.getProjectSchema()).asImpl;
     } catch (e) {
       this.error(`Please validate project manifest before migrate. \n ${e}`);
     }

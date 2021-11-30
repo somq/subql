@@ -110,7 +110,10 @@ export class SandboxService {
     private readonly project: SubqueryProject,
   ) {}
 
-  getDsProcessor(ds: SubqlDatasource, api: ApiAt): IndexerSandbox {
+  async getDsProcessor(
+    ds: SubqlDatasource,
+    api: ApiAt,
+  ): Promise<IndexerSandbox> {
     const entry = this.getDataSourceEntry(ds);
     let processor = this.processorCache[entry];
     if (!processor) {
@@ -120,7 +123,7 @@ export class SandboxService {
           entry,
           root: this.project.root,
           store: this.storeService.getStore(),
-          script: await this.project.loadDataSourceEntry(entry)
+          script: await this.project.loadDataSourceEntry(entry),
         },
         this.nodeConfig,
       );

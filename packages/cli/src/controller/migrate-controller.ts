@@ -4,11 +4,12 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  loadProjectManifest,
   ProjectManifestV0_2_0,
   ProjectManifestVersioned,
   ProjectNetworkV0_0_1,
   ChainTypes,
+  parseProjectManifest,
+  ReaderFactory,
 } from '@subql/common';
 import {cli} from 'cli-ux';
 import yaml from 'js-yaml';
@@ -85,6 +86,7 @@ export async function migrate(
   const originManifestPath = path.join(projectPath, MANIFEST_PATH);
   const manifestV0_0_1 = path.join(projectPath, MANIFEST_V_0_0_1);
   const manifestV0_2_0 = path.join(projectPath, MANIFEST_V_0_2_0);
+  const reader = await ReaderFactory.create(projectPath);
 
   try {
     const data = {} as ProjectManifestV0_2_0;
@@ -112,7 +114,7 @@ export async function migrate(
   }
   //validate before backup and conversion
   try {
-    loadProjectManifest(manifestV0_2_0).isV0_2_0;
+    parseProjectManifest(await reader.getProjectSchema()).isV0_2_0;
   } catch (e) {
     console.error(`${manifestV0_2_0} failed validation for manifest spec 0.2.0, \n ${e}`);
     const keep = await cli.confirm(`However, do you want keep ${manifestV0_2_0} for inspection before retry? [Y/N]`);

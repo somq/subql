@@ -11,7 +11,6 @@ import {
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLOutputType,
-  GraphQLScalarType,
   GraphQLSchema,
   isEnumType,
   isInterfaceType,
@@ -42,7 +41,7 @@ export function getAllJsonObjects(_schema: GraphQLSchema | string): GraphQLObjec
 }
 
 export function getAllEnums(_schema: GraphQLSchema | string) {
-  const schema = typeof _schema === 'string' ? buildSchema(_schema) : _schema;
+  const schema = typeof _schema === 'string' ? buildSchemaFromFile(_schema) : _schema;
   return Object.values(schema.getTypeMap())
     .filter(isEnumType)
     .map((node) => node);

@@ -120,7 +120,7 @@ export class DsProcessorService {
     for (const [name, { file }] of ds.assets) {
       // TODO update with https://github.com/subquery/subql/pull/511
       try {
-        res[name] = fs.readFileSync(path.join(this.project.path, file), {
+        res[name] = fs.readFileSync(path.join(this.project.root, file), {
           encoding: 'utf8',
         });
       } catch (e) {

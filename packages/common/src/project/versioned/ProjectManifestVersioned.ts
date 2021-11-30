@@ -31,6 +31,7 @@ export class ProjectManifestVersioned implements IProjectManifest {
   private _impl: ProjectManifestImpls;
 
   constructor(projectManifest: VersionedProjectManifest) {
+    console.log(projectManifest);
     const klass = SUPPORTED_VERSIONS[projectManifest.specVersion as Versions];
     if (!klass) {
       throw new Error('specVersion not supported for project manifest file');

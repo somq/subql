@@ -6,7 +6,6 @@ import path from 'path';
 import {promisify} from 'util';
 import {
   getAllEntitiesRelations,
-  loadProjectManifest,
   getAllJsonObjects,
   setJsonObjectType,
   getTypeByScalarName,

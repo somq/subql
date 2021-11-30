@@ -92,7 +92,7 @@ export class IndexerManager {
         isUpgraded ? block.block.header.parentHash : undefined,
       );
       for (const ds of this.filteredDataSources) {
-        const vm = this.sandboxService.getDsProcessor(ds, apiAt);
+        const vm = await this.sandboxService.getDsProcessor(ds, apiAt);
         if (isRuntimeDs(ds)) {
           await this.indexBlockForRuntimeDs(
             vm,

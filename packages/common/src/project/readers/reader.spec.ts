@@ -33,9 +33,18 @@ describe('ReaderFactory', () => {
   it('should return the IPFS Reader for a CID v1', async () => {
     const loc = 'bafybeie56fq7db5adfyt3afqwhje6pq2m77gn5ik6pg75bioger6kzjn6a';
     const reader = await ReaderFactory.create(loc, {ipfs: 'https://ipfs.thechainhub.com/api/v0'});
-
     expect(reader instanceof IPFSReader).toBeTruthy();
   });
+
+  it('local IPFS Reader', async () => {
+    const loc = 'ipfs://QmXMkc7vDX2FEX3c6zFMY9kQeFw8BXmgk2Wm326qhZAqMm';
+    const reader = await ReaderFactory.create(loc, {ipfs: 'http://127.0.0.1:8080'});
+    const reader2 = new IPFSReader('QmXMkc7vDX2FEX3c6zFMY9kQeFw8BXmgk2Wm326qhZAqMm', 'http://127.0.0.1:8080');
+
+    expect(reader).toEqual(reader2);
+    console.log(await reader.getProjectSchema());
+    expect(reader instanceof IPFSReader).toBeTruthy();
+  }, 50000000);
 
   it('should support archive files', async () => {
     const reader = await ReaderFactory.create(tarPath);

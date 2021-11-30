@@ -16,10 +16,9 @@ export class Validator {
   private readonly rules: Rule[] = [];
 
   static async create(location: string, opts?: ReaderOptions): Promise<Validator> {
-    return new Validator(await ReaderFactory.create(location, opts));
+    return new Validator(await ReaderFactory.create(location, opts), location);
   }
-
-  constructor(private readonly reader: Reader) {}
+  constructor(private readonly reader: Reader, private readonly location: string) {}
 
   addRule(...rules: Rule[]): void {
     this.rules.push(...rules);
@@ -53,6 +52,7 @@ export class Validator {
 
     const ctx: Context = {
       data: {
+        projectPath: this.location,
         pkg,
         schema,
       },

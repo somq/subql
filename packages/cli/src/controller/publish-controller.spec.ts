@@ -6,7 +6,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {promisify} from 'util';
-import {loadProjectManifest} from '@subql/common';
+import {parseProjectManifest, ReaderFactory} from '@subql/common';
 import rimraf from 'rimraf';
 import Build from '../commands/build';
 import Codegen from '../commands/codegen';
@@ -34,7 +34,6 @@ const projectSpecV0_2_0: ProjectSpecV0_2_0 = {
   description: 'this is test for init controller',
   version: '',
   license: '',
-  endpoint: 'wss://rpc.polkadot.io/public-ws',
 };
 
 const ipfsEndpoint = 'https://ipfs.thechainhub.com/api/v0';
@@ -89,8 +88,8 @@ describe('Cli publish', () => {
 
   it('throw error when v0.0.1 try to deploy', async () => {
     projectDir = await createTestProject(projectSpecV0_0_1);
-    const projectManifestPath = path.resolve(projectDir, 'project.yaml');
-    const manifest = loadProjectManifest(projectManifestPath).asImpl;
+    const reader = await ReaderFactory.create(projectDir);
+    const manifest = parseProjectManifest(await reader.getProjectSchema()).asImpl;
     expect(() => manifest.toDeployment()).toThrowError(
       'Manifest spec 0.0.1 is not support for deployment, please migrate to 0.2.0 or above'
     );
@@ -98,8 +97,8 @@ describe('Cli publish', () => {
 
   it('convert to deployment and removed descriptive field', async () => {
     projectDir = await createTestProject(projectSpecV0_2_0);
-    const projectManifestPath = path.resolve(projectDir, 'project.yaml');
-    const manifest = loadProjectManifest(projectManifestPath).asImpl;
+    const reader = await ReaderFactory.create(projectDir);
+    const manifest = parseProjectManifest(await reader.getProjectSchema()).asImpl;
     const deployment = manifest.toDeployment();
     expect(deployment).not.toContain('name');
     expect(deployment).not.toContain('author');
