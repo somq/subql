@@ -4,9 +4,16 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiPromise, HttpProvider, WsProvider } from '@polkadot/api';
+import { VersionedRegistry } from '@polkadot/api/base/types';
 import { ApiOptions, RpcMethodResult } from '@polkadot/api/types';
-import { BlockHash, RuntimeVersion } from '@polkadot/types/interfaces';
-import { AnyFunction } from '@polkadot/types/types';
+import {
+  BlockHash,
+  RuntimeVersion,
+  SignedBlock,
+  Header,
+  BlockNumber,
+} from '@polkadot/types/interfaces';
+import { AnyFunction, AnyNumber } from '@polkadot/types/types';
 import { SubqueryProject } from '../configure/project.model';
 import { getLogger } from '../utils/logger';
 import { IndexerEvent, NetworkMetadataPayload } from './events';
@@ -25,6 +32,8 @@ export class ApiService implements OnApplicationShutdown {
   private currentRuntimeVersion: RuntimeVersion;
   private apiOption: ApiOptions;
   networkMeta: NetworkMetadataPayload;
+
+  isInitialized = false;
 
   constructor(
     protected project: SubqueryProject,
@@ -78,6 +87,7 @@ export class ApiService implements OnApplicationShutdown {
       throw err;
     }
 
+    this.isInitialized = true;
     return this;
   }
 
@@ -141,5 +151,59 @@ export class ApiService implements OnApplicationShutdown {
       );
       return acc;
     }, {} as ApiPromise['rpc']);
+  }
+
+  async getFinalizedHead(): Promise<BlockHash> {
+    return this.api.rpc.chain.getFinalizedHead();
+  }
+
+  async getBlock(finalizedHead: BlockHash): Promise<SignedBlock> {
+    return this.api.rpc.chain.getBlock(finalizedHead);
+  }
+
+  async getHeader(): Promise<Header> {
+    return this.api.rpc.chain.getHeader();
+  }
+
+  async getBlockHash(blockNumber: BlockNumber | AnyNumber): Promise<BlockHash> {
+    return this.api.rpc.chain.getBlockHash(blockNumber);
+  }
+
+  async getRuntimeVersion(
+    at?: string | BlockHash | Uint8Array,
+  ): Promise<RuntimeVersion> {
+    return this.api.rpc.state.getRuntimeVersion(at);
+  }
+
+  async getBlockRegistry(
+    blockHash: Uint8Array,
+    knownVersion?: RuntimeVersion,
+  ): Promise<VersionedRegistry<'promise'>> {
+    return this.api.getBlockRegistry(blockHash, knownVersion);
+  }
+
+  get runtimeVersionSpecName(): string {
+    return this.api.runtimeVersion.specName.toString();
+  }
+
+  get genesisHash(): string {
+    return this.api.genesisHash.toString();
+  }
+
+  // @todo Very Polkadot specific
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  async querySystemEventsRange([firstBlockHash, endBlockHash]) {
+    return this.api.query.system.events.range([firstBlockHash, endBlockHash]);
+  }
+  // @todo Very Polkadot specific
+  async querySystemLastRuntimeUpgradeRange([firstBlockHash, endBlockHash]) {
+    return this.api.query.system.lastRuntimeUpgrade.range([
+      firstBlockHash,
+      endBlockHash,
+    ]);
+  }
+  // @todo Very Polkadot specific
+  async querySystemEventsAt(hash: BlockHash) {
+    return this.api.query.system.events.at(hash);
   }
 }

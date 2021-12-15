@@ -143,10 +143,6 @@ export class FetchService implements OnApplicationShutdown {
     this.isShutdown = true;
   }
 
-  get api(): ApiPromise {
-    return this.apiService.getApi();
-  }
-
   // TODO: if custom ds doesn't support dictionary, use baseFilter, if yes, let
   getDictionaryQueryEntries(): DictionaryQueryEntry[] {
     const queryEntries: DictionaryQueryEntry[] = [];
@@ -156,7 +152,11 @@ export class FetchService implements OnApplicationShutdown {
         isRuntimeDataSourceV0_2_0(ds) ||
         !(ds as RuntimeDataSourceV0_0_1).filter?.specName ||
         (ds as RuntimeDataSourceV0_0_1).filter.specName ===
-          this.api.runtimeVersion.specName.toString(),
+          this.apiService.runtimeVersionSpecName,
+    );
+    console.log(
+      `FetchService / getDictionaryQueryEntries / dataSources`,
+      dataSources,
     );
     for (const ds of dataSources) {
       const plugin = isCustomDs(ds)
@@ -164,6 +164,10 @@ export class FetchService implements OnApplicationShutdown {
         : undefined;
       for (const handler of ds.mapping.handlers) {
         const baseHandlerKind = this.getBaseHandlerKind(ds, handler);
+        console.log(
+          `FetchService / getDictionaryQueryEntries / baseHandlerKind`,
+          baseHandlerKind,
+        );
         let filterList: SubqlHandlerFilter[];
         if (isCustomDs(ds)) {
           const processor = plugin.handlerProcessors[handler.kind];
@@ -277,13 +281,14 @@ export class FetchService implements OnApplicationShutdown {
 
   @Interval(BLOCK_TIME_VARIANCE * 1000)
   async getFinalizedBlockHead() {
-    if (!this.api) {
+    if (!this.apiService.isInitialized) {
       logger.debug(`Skip fetch finalized block until API is ready`);
       return;
     }
     try {
-      const finalizedHead = await this.api.rpc.chain.getFinalizedHead();
-      const finalizedBlock = await this.api.rpc.chain.getBlock(finalizedHead);
+      const finalizedHead = await this.apiService.getFinalizedHead();
+      const finalizedBlock = await this.apiService.getBlock(finalizedHead);
+
       const currentFinalizedHeight =
         finalizedBlock.block.header.number.toNumber();
       if (this.latestFinalizedHeight !== currentFinalizedHeight) {
@@ -299,12 +304,12 @@ export class FetchService implements OnApplicationShutdown {
 
   @Interval(BLOCK_TIME_VARIANCE * 1000)
   async getBestBlockHead() {
-    if (!this.api) {
+    if (!this.apiService.isInitialized) {
       logger.debug(`Skip fetch best block until API is ready`);
       return;
     }
     try {
-      const bestHeader = await this.api.rpc.chain.getHeader();
+      const bestHeader = await this.apiService.getHeader();
       const currentBestHeight = bestHeader.number.toNumber();
       if (this.latestBestHeight !== currentBestHeight) {
         this.latestBestHeight = currentBestHeight;
@@ -419,7 +424,7 @@ export class FetchService implements OnApplicationShutdown {
         bufferBlocks[bufferBlocks.length - 1],
       );
       const blocks = await fetchBlocksBatches(
-        this.api,
+        this.apiService,
         bufferBlocks,
         metadataChanged ? undefined : this.parentSpecVersion,
       );
@@ -437,16 +442,16 @@ export class FetchService implements OnApplicationShutdown {
 
   @profiler(argv.profiler)
   async fetchMeta(height: number): Promise<boolean> {
-    const parentBlockHash = await this.api.rpc.chain.getBlockHash(
+    const parentBlockHash = await this.apiService.getBlockHash(
       Math.max(height - 1, 0),
     );
-    const runtimeVersion = await this.api.rpc.state.getRuntimeVersion(
+    const runtimeVersion = await this.apiService.getRuntimeVersion(
       parentBlockHash,
     );
     const specVersion = runtimeVersion.specVersion.toNumber();
     if (this.parentSpecVersion !== specVersion) {
-      const blockHash = await this.api.rpc.chain.getBlockHash(height);
-      await SubstrateUtil.prefetchMetadata(this.api, blockHash);
+      const blockHash = await this.apiService.getBlockHash(height);
+      await SubstrateUtil.prefetchMetadata(this.apiService, blockHash);
       this.parentSpecVersion = specVersion;
       return true;
     }
@@ -469,7 +474,7 @@ export class FetchService implements OnApplicationShutdown {
     { _metadata: metaData }: Dictionary,
     startBlockHeight: number,
   ): boolean {
-    if (metaData.genesisHash !== this.api.genesisHash.toString()) {
+    if (metaData.genesisHash !== this.apiService.genesisHash) {
       logger.warn(`Dictionary is disabled since now`);
       this.useDictionary = false;
       this.eventEmitter.emit(IndexerEvent.UsingDictionary, {
