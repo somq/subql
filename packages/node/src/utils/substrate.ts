@@ -1,7 +1,6 @@
 // Copyright 2020-2021 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ApiPromise } from '@polkadot/api';
 import { Option, Vec } from '@polkadot/types';
 import {
   BlockHash,
@@ -20,6 +19,7 @@ import {
   SubstrateExtrinsic,
 } from '@subql/types';
 import { last, merge, range } from 'lodash';
+import { ApiService } from '../indexer/api.service';
 import { BlockContent } from '../indexer/types';
 import { getLogger } from './logger';
 
@@ -178,7 +178,7 @@ export function filterEvents(
 
 // TODO: prefetch all known runtime upgrades at once
 export async function prefetchMetadata(
-  api: ApiPromise,
+  api: ApiService,
   hash: BlockHash,
 ): Promise<void> {
   await api.getBlockRegistry(hash);
@@ -192,7 +192,7 @@ export async function prefetchMetadata(
  * @param overallSpecVer exists if all blocks in the range have same parant specVersion
  */
 export async function fetchBlocks(
-  api: ApiPromise,
+  api: ApiService,
   startHeight: number,
   endHeight: number,
   overallSpecVer?: number,
@@ -224,7 +224,7 @@ export async function fetchBlocks(
 }
 
 export async function fetchBlocksViaRangeQuery(
-  api: ApiPromise,
+  api: ApiService,
   startHeight: number,
   endHeight: number,
 ): Promise<BlockContent[]> {
@@ -232,8 +232,8 @@ export async function fetchBlocksViaRangeQuery(
   const firstBlockHash = blocks[0].block.header.hash;
   const endBlockHash = last(blocks).block.header.hash;
   const [blockEvents, runtimeUpgrades] = await Promise.all([
-    api.query.system.events.range([firstBlockHash, endBlockHash]),
-    api.query.system.lastRuntimeUpgrade.range([firstBlockHash, endBlockHash]),
+    api.querySystemEventsRange([firstBlockHash, endBlockHash]),
+    api.querySystemLastRuntimeUpgradeRange([firstBlockHash, endBlockHash]),
   ]);
 
   let lastEvents: Vec<EventRecord>;
@@ -260,21 +260,21 @@ export async function fetchBlocksViaRangeQuery(
 }
 
 async function getBlockByHeight(
-  api: ApiPromise,
+  api: ApiService,
   height: number,
 ): Promise<SignedBlock> {
-  const blockHash = await api.rpc.chain.getBlockHash(height).catch((e) => {
+  const blockHash = await api.getBlockHash(height).catch((e) => {
     logger.error(`failed to fetch BlockHash ${height}`);
     throw e;
   });
-  return api.rpc.chain.getBlock(blockHash).catch((e) => {
+  return api.getBlock(blockHash).catch((e) => {
     logger.error(`failed to fetch Block ${blockHash}`);
     throw e;
   });
 }
 
 export async function fetchBlocksRange(
-  api: ApiPromise,
+  api: ApiService,
   startHeight: number,
   endHeight: number,
 ): Promise<SignedBlock[]> {
@@ -286,7 +286,7 @@ export async function fetchBlocksRange(
 }
 
 export async function fetchBlocksArray(
-  api: ApiPromise,
+  api: ApiService,
   blockArray: number[],
 ): Promise<SignedBlock[]> {
   return Promise.all(
@@ -295,12 +295,12 @@ export async function fetchBlocksArray(
 }
 
 export async function fetchEventsRange(
-  api: ApiPromise,
+  api: ApiService,
   hashs: BlockHash[],
 ): Promise<Vec<EventRecord>[]> {
   return Promise.all(
     hashs.map((hash) =>
-      api.query.system.events.at(hash).catch((e) => {
+      api.querySystemEventsAt(hash).catch((e) => {
         logger.error(`failed to fetch events at block ${hash}`);
         throw e;
       }),
@@ -309,12 +309,12 @@ export async function fetchEventsRange(
 }
 
 export async function fetchRuntimeVersionRange(
-  api: ApiPromise,
+  api: ApiService,
   hashs: BlockHash[],
 ): Promise<RuntimeVersion[]> {
   return Promise.all(
     hashs.map((hash) =>
-      api.rpc.state.getRuntimeVersion(hash).catch((e) => {
+      api.getRuntimeVersion(hash).catch((e) => {
         logger.error(`failed to fetch RuntimeVersion at block ${hash}`);
         throw e;
       }),
@@ -323,7 +323,7 @@ export async function fetchRuntimeVersionRange(
 }
 
 export async function fetchBlocksBatches(
-  api: ApiPromise,
+  api: ApiService,
   blockArray: number[],
   overallSpecVer?: number,
   // specVersionMap?: number[],
